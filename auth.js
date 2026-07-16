@@ -620,10 +620,121 @@ function setupHomePage() {
         });
     }
     if (signup) {
-        signup.addEventListener('click', () => {
-            window.location.href = 'login.html?mode=register';
-        });
+        signup.addEventListener('click', () => openSignupModal());
     }
+}
+
+// Open the on-page signup modal.
+function openSignupModal() {
+    const modal = document.getElementById('signup-modal');
+    if (!modal) return;
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden';
+    const first = modal.querySelector('input, select');
+    if (first) setTimeout(() => first.focus(), 50);
+}
+
+function closeSignupModal() {
+    const modal = document.getElementById('signup-modal');
+    if (!modal) return;
+    modal.hidden = true;
+    document.body.style.overflow = '';
+}
+
+// Wire the home-page signup modal: open/close + credential submission.
+function setupHomeSignup() {
+    const modal = document.getElementById('signup-modal');
+    if (!modal) return;
+
+    const closeBtn = document.getElementById('signup-modal-close');
+    const form = document.getElementById('home-signup-form');
+    const errorEl = document.getElementById('signup-modal-error');
+
+    if (closeBtn) closeBtn.addEventListener('click', closeSignupModal);
+
+    // Close on overlay click (outside the modal box)
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeSignupModal();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modal.hidden) closeSignupModal();
+    });
+
+    if (!form) return;
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (errorEl) { errorEl.hidden = true; errorEl.textContent = ''; }
+
+        const firstName = document.getElementById('su-firstname').value.trim();
+        const lastName = document.getElementById('su-lastname').value.trim();
+        const email = document.getElementById('su-email').value.trim().toLowerCase();
+        const age = parseInt(document.getElementById('su-age').value, 10);
+        const grade = document.getElementById('su-grade').value;
+        const password = document.getElementById('su-password').value;
+
+        // Basic validation
+        if (!firstName || !lastName || !email || !age || !grade || !password) {
+            if (errorEl) { errorEl.textContent = 'Please fill in every field.'; errorEl.hidden = false; }
+            return;
+        }
+        if (!isValidEmail(email)) {
+            if (errorEl) { errorEl.textContent = 'Please enter a valid email address.'; errorEl.hidden = false; }
+            return;
+        }
+        if (age < 12 || age > 18) {
+            if (errorEl) { errorEl.textContent = 'You must be between 12 and 18 years old.'; errorEl.hidden = false; }
+            return;
+        }
+        if (password.length < 8) {
+            if (errorEl) { errorEl.textContent = 'Password must be at least 8 characters.'; errorEl.hidden = false; }
+            return;
+        }
+
+        const btn = form.querySelector('.btn');
+        const btnText = btn?.querySelector('.btn-text');
+        if (btn) { btn.disabled = true; if (btnText) btnText.textContent = 'Creating account…'; }
+
+        try {
+            if (!supabase) {
+                throw new Error('Supabase not configured');
+            }
+            const { data, error } = await supabase.auth.signUp({
+                email,
+                password,
+                options: {
+                    data: {
+                        first_name: firstName,
+                        last_name: lastName,
+                        full_name: `${firstName} ${lastName}`,
+                        age,
+                        grade: parseInt(grade, 10)
+                    }
+                }
+            });
+            if (error) throw error;
+
+            closeSignupModal();
+            // If email confirmation is required, Supabase returns no session.
+            if (data?.user && !data?.session) {
+                window.location.href = 'login.html?registered=1';
+            } else {
+                window.location.href = 'index.html';
+            }
+        } catch (err) {
+            let msg = 'Could not create your account. Please try again.';
+            if (err.message && err.message.includes('User already registered')) {
+                msg = 'An account with this email already exists. Try logging in.';
+            } else if (err.message === 'Supabase not configured') {
+                msg = 'Sign-up is not ready yet — add your Supabase keys to auth.js.';
+            }
+            if (errorEl) { errorEl.textContent = msg; errorEl.hidden = false; }
+        } finally {
+            if (btn) { btn.disabled = false; if (btnText) btnText.textContent = 'Create Account'; }
+        }
+    });
 }
 
 // ========================================
@@ -650,6 +761,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Home page bits (nav auth buttons + hero buttons)
     renderNavAuth();
     setupHomePage();
+    setupHomeSignup();
     
     // Check for URL params (e.g., ?mode=register)
     const params = new URLSearchParams(window.location.search);
