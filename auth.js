@@ -560,6 +560,73 @@ function setupOAuthButtons() {
 }
 
 // ========================================
+// NAVIGATION AUTH BUTTONS (index.html)
+// ========================================
+
+// Render the Login/Sign-up (or user menu) inside the top nav.
+// Works even before Supabase is configured (falls back to links).
+async function renderNavAuth() {
+    const container = document.getElementById('nav-actions');
+    if (!container) return; // not on a page with a nav
+
+    // If Supabase isn't initialized, just show links to the login page.
+    if (!supabase) {
+        container.innerHTML = `
+            <a href="login.html" class="nav-btn">Log In</a>
+            <a href="login.html?mode=register" class="nav-btn nav-btn-primary">Sign Up</a>
+        `;
+        return;
+    }
+
+    try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+            const initials = (session.user.email || 'U').charAt(0).toUpperCase();
+            container.innerHTML = `
+                <span class="nav-user">
+                    <span class="nav-avatar">${initials}</span>
+                    ${session.user.email}
+                </span>
+                <button class="nav-btn" id="nav-logout">Log Out</button>
+            `;
+            const logoutBtn = document.getElementById('nav-logout');
+            if (logoutBtn) logoutBtn.addEventListener('click', async () => {
+                await supabase.auth.signOut();
+                window.location.href = 'index.html';
+            });
+        } else {
+            container.innerHTML = `
+                <a href="login.html" class="nav-btn">Log In</a>
+                <a href="login.html?mode=register" class="nav-btn nav-btn-primary">Sign Up</a>
+            `;
+        }
+    } catch (err) {
+        // On error, still show the links
+        container.innerHTML = `
+            <a href="login.html" class="nav-btn">Log In</a>
+            <a href="login.html?mode=register" class="nav-btn nav-btn-primary">Sign Up</a>
+        `;
+    }
+}
+
+// Wire up the hero buttons on the home page.
+function setupHomePage() {
+    const cta = document.getElementById('hero-cta');
+    const signup = document.getElementById('hero-signup');
+
+    if (cta) {
+        cta.addEventListener('click', () => {
+            document.getElementById('what-is-ai')?.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+    if (signup) {
+        signup.addEventListener('click', () => {
+            window.location.href = 'login.html?mode=register';
+        });
+    }
+}
+
+// ========================================
 // INITIALIZATION
 // ========================================
 
@@ -574,11 +641,15 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(warning);
     }
     
-    // Initialize forms
+    // Initialize forms (only present on login.html)
     setupLoginForm();
     setupRegisterForm();
     setupTabSwitching();
     setupOAuthButtons();
+
+    // Home page bits (nav auth buttons + hero buttons)
+    renderNavAuth();
+    setupHomePage();
     
     // Check for URL params (e.g., ?mode=register)
     const params = new URLSearchParams(window.location.search);

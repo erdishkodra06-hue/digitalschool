@@ -10,6 +10,19 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Top Navigation -->
+    <nav class="top-nav" id="top-nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-logo" aria-label="AI Learning Hub Home">
+                <span class="logo-icon">🧠</span>
+                <span class="logo-text">AI Learning Hub</span>
+            </a>
+            <div class="nav-actions" id="nav-actions">
+                <!-- Auth buttons injected by auth.js -->
+            </div>
+        </div>
+    </nav>
+
     <header class="hero">
         <div class="hero-bg-effects">
             <div class="gradient-orb orb-1"></div>
@@ -20,7 +33,10 @@
             <div class="hero-badge">🚀 For Students Aged 12–18</div>
             <h1 class="hero-title">Welcome to the <span class="highlight">Age of AI</span></h1>
             <p class="hero-subtitle">Discover how artificial intelligence is changing the world around you — and how you can be part of it.</p>
-            <button class="hero-btn">Start Exploring</button>
+            <div class="hero-actions">
+                <button class="hero-btn btn-primary" id="hero-cta">Start Exploring</button>
+                <button class="hero-btn btn-secondary" id="hero-signup">Create Free Account</button>
+            </div>
         </div>
         <div class="scroll-indicator">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -203,6 +219,9 @@
         </div>
     </footer>
 
+    <!-- Supabase client + Auth logic (provides the login/signup buttons) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="auth.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

@@ -413,6 +413,132 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 1;
 }
 
+/* Hero actions row (buttons) */
+.hero-actions {
+    display: flex;
+    gap: var(--space-4);
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: var(--space-2);
+}
+
+/* ========================================
+   TOP NAVIGATION
+   ======================================== */
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(10, 15, 30, 0.8);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.nav-container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: var(--space-3) var(--container-padding);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+}
+
+.nav-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    flex-shrink: 0;
+}
+
+.nav-logo .logo-icon {
+    font-size: var(--text-2xl);
+}
+
+.nav-logo .logo-text {
+    font-family: var(--font-display);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    background: var(--gradient-text);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.nav-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+}
+
+/* Compact buttons used inside the nav */
+.nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-5);
+    font-family: var(--font-primary);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all var(--transition-base);
+    background: transparent;
+    color: var(--color-text-primary);
+}
+
+.nav-btn:hover {
+    border-color: var(--color-border-light);
+    background: var(--color-surface);
+}
+
+.nav-btn.nav-btn-primary {
+    background: var(--gradient-primary);
+    color: var(--color-bg);
+    border-color: transparent;
+    box-shadow: 0 4px 20px var(--color-accent-glow);
+}
+
+.nav-btn.nav-btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--color-accent-glow);
+}
+
+.nav-user {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+}
+
+.nav-user .nav-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--gradient-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-sm);
+    color: var(--color-bg);
+    font-weight: 700;
+}
+
+/* Push hero content below the fixed nav */
+.hero {
+    padding-top: calc(var(--space-20) + var(--header-height, 4rem));
+}
+
 /* Scroll Indicator */
 .scroll-indicator {
     position: absolute;
