@@ -8,10 +8,16 @@
 const SUPABASE_URL = 'YOUR_SUPABASE_URL';      // Replace with your Supabase project URL
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';  // Replace with your anon key
 
-// Initialize Supabase client
+// Treat the literal placeholders as "not configured"
+const SUPABASE_CONFIGURED =
+    SUPABASE_URL !== 'YOUR_SUPABASE_URL' &&
+    SUPABASE_ANON_KEY !== 'YOUR_SUPABASE_ANON_KEY' &&
+    SUPABASE_URL.startsWith('http');
+
+// Initialize Supabase client (only when real keys are provided)
 let supabase = null;
 
-if (typeof window !== 'undefined' && window.supabase) {
+if (typeof window !== 'undefined' && window.supabase && SUPABASE_CONFIGURED) {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
@@ -699,7 +705,19 @@ function setupHomeSignup() {
 
         try {
             if (!supabase) {
-                throw new Error('Supabase not configured');
+                // DEMO MODE: no Supabase keys yet, so simulate a successful sign-up
+                // locally so the button actually works for testing. The real
+                // Supabase branch below kicks in automatically once you add keys.
+                const DEMO_USERS = 'aihub_demo_users';
+                const users = JSON.parse(localStorage.getItem(DEMO_USERS) || '[]');
+                if (users.some(u => u.email === email)) {
+                    throw new Error('User already registered');
+                }
+                users.push({ email, first_name: firstName, last_name: lastName, age, grade });
+                localStorage.setItem(DEMO_USERS, JSON.stringify(users));
+                closeSignupModal();
+                window.location.href = 'index.html?demo=1';
+                return;
             }
             const { data, error } = await supabase.auth.signUp({
                 email,
@@ -727,8 +745,6 @@ function setupHomeSignup() {
             let msg = 'Could not create your account. Please try again.';
             if (err.message && err.message.includes('User already registered')) {
                 msg = 'An account with this email already exists. Try logging in.';
-            } else if (err.message === 'Supabase not configured') {
-                msg = 'Sign-up is not ready yet — add your Supabase keys to auth.js.';
             }
             if (errorEl) { errorEl.textContent = msg; errorEl.hidden = false; }
         } finally {
