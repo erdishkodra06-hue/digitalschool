@@ -110,23 +110,23 @@
                 <form class="auth-form" id="register-form" role="tabpanel" aria-labelledby="register-tab" hidden>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="register-firstname">First Name</label>
+                            <label for="register-firstname">Name</label>
                             <div class="input-wrapper">
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                     <circle cx="12" cy="7" r="4"/>
                                 </svg>
-                                <input type="text" id="register-firstname" name="first_name" placeholder="First name" autocomplete="given-name" required>
+                                <input type="text" id="register-firstname" name="first_name" placeholder="John" autocomplete="given-name" required>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label for="register-lastname">Last Name</label>
+                            <label for="register-lastname">Surname</label>
                             <div class="input-wrapper">
                                 <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                     <circle cx="12" cy="7" r="4"/>
                                 </svg>
-                                <input type="text" id="register-lastname" name="last_name" placeholder="Last name" autocomplete="family-name" required>
+                                <input type="text" id="register-lastname" name="last_name" placeholder="Doe" autocomplete="family-name" required>
                             </div>
                         </div>
                     </div>
@@ -142,35 +142,28 @@
                         </div>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="register-age">Age</label>
-                            <div class="input-wrapper">
-                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                <input type="number" id="register-age" name="age" placeholder="15" min="12" max="18" autocomplete="off" required>
-                            </div>
+                    <div class="form-group">
+                        <label for="register-confirm-email">Email (Confirm)</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                                <polyline points="22,6 12,13 2,6"/>
+                            </svg>
+                            <input type="email" id="register-confirm-email" name="confirm_email" placeholder="you@example.com" autocomplete="email" required>
                         </div>
-                        <div class="form-group">
-                            <label for="register-grade">Grade</label>
-                            <div class="input-wrapper">
-                                <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                                </svg>
-                                <select id="register-grade" name="grade" autocomplete="off" required>
-                                    <option value="">Select grade</option>
-                                    <option value="7">7th Grade</option>
-                                    <option value="8">8th Grade</option>
-                                    <option value="9">9th Grade</option>
-                                    <option value="10">10th Grade</option>
-                                    <option value="11">11th Grade</option>
-                                    <option value="12">12th Grade</option>
-                                    <option value="other">Other</option>
-                                </select>
-                            </div>
+                        <p class="form-hint" id="email-match-hint" hidden></p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="register-dob">Date of Birth</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                                <line x1="16" y1="2" x2="16" y2="6"/>
+                                <line x1="8" y1="2" x2="8" y2="6"/>
+                                <line x1="3" y1="10" x2="21" y2="10"/>
+                            </svg>
+                            <input type="date" id="register-dob" name="date_of_birth" max="2014-12-31" min="2007-01-01" autocomplete="bday" required>
                         </div>
                     </div>
 
@@ -199,18 +192,6 @@
                             </div>
                             <span class="strength-text" id="strength-text"></span>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="register-confirm">Confirm Password</label>
-                        <div class="input-wrapper">
-                            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                            </svg>
-                            <input type="password" id="register-confirm" name="confirm_password" placeholder="••••••••" autocomplete="new-password" required>
-                        </div>
-                        <p class="form-hint" id="password-match-hint" hidden></p>
                     </div>
 
                     <div class="form-group">

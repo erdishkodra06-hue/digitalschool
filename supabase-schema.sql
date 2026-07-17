@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     username TEXT UNIQUE,
     full_name TEXT,
     avatar_url TEXT,
+    date_of_birth DATE,
     age INTEGER CHECK (age >= 12 AND age <= 18),
     grade_level TEXT,
     learning_interests TEXT[],

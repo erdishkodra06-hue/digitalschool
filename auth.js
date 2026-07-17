@@ -113,26 +113,6 @@ function updatePasswordStrength(password) {
                          level === 'good' ? 'var(--auth-purple)' : 'var(--auth-green)';
 }
 
-// Check password match
-function checkPasswordMatch(password, confirm) {
-    const hintEl = document.getElementById('password-match-hint');
-    
-    if (!confirm) {
-        hide(hintEl);
-        return;
-    }
-    
-    show(hintEl);
-    
-    if (password === confirm) {
-        hintEl.textContent = '✓ Passwords match';
-        hintEl.className = 'form-hint success';
-    } else {
-        hintEl.textContent = '✗ Passwords do not match';
-        hintEl.className = 'form-hint error';
-    }
-}
-
 // Toggle password visibility
 function setupPasswordToggle(wrapper) {
     const toggleBtn = wrapper.querySelector('.toggle-password');
@@ -149,15 +129,70 @@ function setupPasswordToggle(wrapper) {
 }
 
 // ========================================
-// AUTH STATE MANAGEMENT
+// LOCAL DEMO BACKEND (works with NO Supabase keys)
+// ========================================
+// So the site functions like a real website out-of-the-box, we persist
+// accounts/sessions in localStorage when Supabase isn't configured. The
+// real Supabase path below is used automatically once keys are added.
+
+const DEMO_USERS_KEY = 'aihub_users';
+const DEMO_SESSION_KEY = 'aihub_session';
+
+function _demoUsers() {
+    try { return JSON.parse(localStorage.getItem(DEMO_USERS_KEY) || '[]'); }
+    catch { return []; }
+}
+function _saveDemoUsers(users) { localStorage.setItem(DEMO_USERS_KEY, JSON.stringify(users)); }
+function _demoSession() {
+    try { return JSON.parse(localStorage.getItem(DEMO_SESSION_KEY) || 'null'); }
+    catch { return null; }
+}
+function _saveDemoSession(user) { localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(user)); }
+function _clearDemoSession() { localStorage.removeItem(DEMO_SESSION_KEY); }
+
+// Returns a normalized user object shaped like a Supabase user.
+function _demoRegister({ firstName, lastName, email, password, dateOfBirth }) {
+    const users = _demoUsers();
+    if (users.some(u => u.email === email)) {
+        const err = new Error('User already registered');
+        err.status = 409;
+        throw err;
+    }
+    const user = {
+        id: 'demo-' + crypto.randomUUID(),
+        email,
+        user_metadata: { first_name: firstName, last_name: lastName, full_name: `${firstName} ${lastName}`, date_of_birth: dateOfBirth }
+    };
+    users.push({ ...user, password });
+    _saveDemoUsers(users);
+    _saveDemoSession(user);
+    return user;
+}
+
+function _demoLogin(email, password) {
+    const users = _demoUsers();
+    const found = users.find(u => u.email === email);
+    if (!found || found.password !== password) {
+        const err = new Error('Invalid login credentials');
+        err.status = 400;
+        throw err;
+    }
+    const { password: _pw, ...user } = found;
+    _saveDemoSession(user);
+    return user;
+}
+
+// ========================================
+// AUTH STATE MANAGEMENT (demo + Supabase)
 // ========================================
 
 // Check if user is logged in
 async function checkAuthState() {
-    if (!supabase) return null;
-    
-    const { data: { session } } = await supabase.auth.getSession();
-    return session?.user || null;
+    if (supabase) {
+        const { data: { session } } = await supabase.auth.getSession();
+        return session?.user || null;
+    }
+    return _demoSession();
 }
 
 // Redirect if authenticated (for login/register pages)
@@ -181,71 +216,81 @@ async function requireAuth() {
 
 // Sign out
 async function signOut() {
-    if (!supabase) return;
-    await supabase.auth.signOut();
+    if (supabase) {
+        await supabase.auth.signOut();
+    } else {
+        _clearDemoSession();
+    }
     window.location.href = 'login.html';
 }
 
 // ========================================
-// EMAIL/PASSWORD AUTH
+// EMAIL/PASSWORD AUTH (demo + Supabase)
 // ========================================
 
 // Sign in with email/password
 async function signInWithEmail(email, password) {
-    if (!supabase) throw new Error('Supabase not initialized');
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password
-    });
-    
-    if (error) throw error;
-    return data;
+    if (supabase) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email.trim().toLowerCase(),
+            password
+        });
+        if (error) throw error;
+        return data;
+    }
+    const user = _demoLogin(email.trim().toLowerCase(), password);
+    return { user, session: { user } };
 }
 
 // Sign up with email/password
 async function signUpWithEmail(email, password, metadata = {}) {
-    if (!supabase) throw new Error('Supabase not initialized');
-    
-    const { data, error } = await supabase.auth.signUp({
+    if (supabase) {
+        const { data, error } = await supabase.auth.signUp({
+            email: email.trim().toLowerCase(),
+            password,
+            options: { data: metadata }
+        });
+        if (error) throw error;
+        return data;
+    }
+    const firstName = metadata.first_name || '';
+    const lastName = metadata.last_name || '';
+    const user = _demoRegister({
+        firstName, lastName,
         email: email.trim().toLowerCase(),
         password,
-        options: {
-            data: metadata
-        }
+        dateOfBirth: metadata.date_of_birth || null
     });
-    
-    if (error) throw error;
-    return data;
+    return { user, session: { user } };
 }
 
 // Send password reset email
 async function resetPassword(email) {
-    if (!supabase) throw new Error('Supabase not initialized');
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password.html'
-    });
-    
-    if (error) throw error;
+    if (supabase) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: window.location.origin + '/reset-password.html'
+        });
+        if (error) throw error;
+        return true;
+    }
+    // Demo: nothing to do, but pretend success
     return true;
 }
 
 // ========================================
 // OAUTH AUTH
 // ========================================
-
-// Sign in with OAuth provider
+// Sign in with OAuth provider (Supabase only — requires real keys)
 async function signInWithOAuth(provider) {
-    if (!supabase) throw new Error('Supabase not initialized');
-    
+    if (!supabase) {
+        throw new Error('OAuth requires Supabase configuration');
+    }
     const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
             redirectTo: window.location.origin + '/auth-callback.html'
         }
     });
-    
     if (error) throw error;
     return data;
 }
@@ -326,6 +371,7 @@ async function getUserAchievements(userId) {
 // Setup login form
 function setupLoginForm() {
     const form = document.getElementById('login-form');
+    if (!form) return; // login page only
     const emailInput = document.getElementById('login-email');
     const passwordInput = document.getElementById('login-password');
     const submitBtn = form.querySelector('.auth-submit');
@@ -379,98 +425,114 @@ function setupLoginForm() {
 // Setup register form
 function setupRegisterForm() {
     const form = document.getElementById('register-form');
+    if (!form) return; // login page only
     const firstNameInput = document.getElementById('register-firstname');
     const lastNameInput = document.getElementById('register-lastname');
     const emailInput = document.getElementById('register-email');
-    const ageInput = document.getElementById('register-age');
-    const gradeInput = document.getElementById('register-grade');
+    const confirmEmailInput = document.getElementById('register-confirm-email');
+    const dobInput = document.getElementById('register-dob');
     const passwordInput = document.getElementById('register-password');
-    const confirmInput = document.getElementById('register-confirm');
     const termsInput = document.getElementById('terms-agree');
     const submitBtn = form.querySelector('.auth-submit');
     const errorEl = document.getElementById('register-error');
-    
+
+    // Email confirm-match hint
+    function checkEmailMatch() {
+        const hintEl = document.getElementById('email-match-hint');
+        if (!hintEl) return;
+        const c = confirmEmailInput.value.trim();
+        if (!c) { hintEl.hidden = true; return; }
+        hintEl.hidden = false;
+        if (c.toLowerCase() === emailInput.value.trim().toLowerCase()) {
+            hintEl.textContent = '✓ Emails match';
+            hintEl.className = 'form-hint success';
+        } else {
+            hintEl.textContent = '✗ Emails do not match';
+            hintEl.className = 'form-hint error';
+        }
+    }
+
     // Password toggles
     setupPasswordToggle(passwordInput.closest('.input-wrapper'));
-    setupPasswordToggle(confirmInput.closest('.input-wrapper'));
-    
-    // Password strength
-    passwordInput.addEventListener('input', () => {
-        updatePasswordStrength(passwordInput.value);
-        checkPasswordMatch(passwordInput.value, confirmInput.value);
-    });
-    
-    confirmInput.addEventListener('input', () => {
-        checkPasswordMatch(passwordInput.value, confirmInput.value);
-    });
-    
+
+    // Live feedback
+    passwordInput.addEventListener('input', () => updatePasswordStrength(passwordInput.value));
+    emailInput.addEventListener('input', checkEmailMatch);
+    confirmEmailInput.addEventListener('input', checkEmailMatch);
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         hideError('register-error');
-        
-        // Get values
+
         const firstName = firstNameInput.value.trim();
         const lastName = lastNameInput.value.trim();
         const email = emailInput.value.trim().toLowerCase();
-        const age = parseInt(ageInput.value, 10);
-        const grade = gradeInput.value;
+        const confirmEmail = confirmEmailInput.value.trim().toLowerCase();
+        const dateOfBirth = dobInput.value;
         const password = passwordInput.value;
-        const confirm = confirmInput.value;
         const terms = termsInput.checked;
-        
+
         // Validation
-        if (!firstName || !lastName || !email || !age || !grade || !password || !confirm) {
+        if (!firstName || !lastName || !email || !confirmEmail || !dateOfBirth || !password) {
             showError('register-error', 'Please fill in all fields');
             return;
         }
-        
+
         if (!isValidEmail(email)) {
             showError('register-error', 'Please enter a valid email address');
             return;
         }
-        
-        if (age < 12 || age > 18) {
+
+        if (email !== confirmEmail) {
+            showError('register-error', 'The two email addresses do not match');
+            return;
+        }
+
+        // Date of birth -> age 12–18
+        let age = null;
+        if (dateOfBirth) {
+            const dob = new Date(dateOfBirth);
+            const now = new Date();
+            age = now.getFullYear() - dob.getFullYear();
+            const m = now.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+        }
+        if (age === null || age < 12 || age > 18) {
             showError('register-error', 'You must be between 12 and 18 years old');
             return;
         }
-        
+
         const { level } = checkPasswordStrength(password);
         if (level === 'weak') {
             showError('register-error', 'Password is too weak. Use at least 8 characters with mixed case, numbers, and symbols');
             return;
         }
-        
-        if (password !== confirm) {
-            showError('register-error', 'Passwords do not match');
-            return;
-        }
-        
+
         if (!terms) {
             showError('register-error', 'You must agree to the Terms of Service and Privacy Policy');
             return;
         }
-        
+
         setLoading(submitBtn, true);
-        
+
         try {
-            // Sign up
+            // Sign up (demo backend or Supabase, depending on config)
             const { data } = await signUpWithEmail(email, password, {
                 first_name: firstName,
                 last_name: lastName,
-                age,
-                grade: parseInt(grade, 10),
-                full_name: `${firstName} ${lastName}`
+                full_name: `${firstName} ${lastName}`,
+                date_of_birth: dateOfBirth
             });
-            
-            // Check if email confirmation is needed
-            if (data.user && !data.session) {
+
+            // In demo mode there is no email confirmation step.
+            if (supabase && data.user && !data.session) {
                 showError('register-error', 'Account created! Please check your email to confirm your account.', 'success');
             } else {
                 window.location.href = 'index.html';
             }
         } catch (error) {
             let message = 'Registration failed. Please try again.';
-            
+
             if (error.message.includes('User already registered')) {
                 message = 'An account with this email already exists';
             } else if (error.message.includes('Password should be at least')) {
@@ -478,7 +540,7 @@ function setupRegisterForm() {
             } else if (error.message.includes('Invalid email')) {
                 message = 'Please enter a valid email address';
             }
-            
+
             showError('register-error', message);
         } finally {
             setLoading(submitBtn, false);
@@ -570,34 +632,27 @@ function setupOAuthButtons() {
 // ========================================
 
 // Render the Login/Sign-up (or user menu) inside the top nav.
-// Works even before Supabase is configured (falls back to links).
+// Works even before Supabase is configured (uses the demo session if present).
 async function renderNavAuth() {
     const container = document.getElementById('nav-actions');
     if (!container) return; // not on a page with a nav
 
-    // If Supabase isn't initialized, just show links to the login page.
-    if (!supabase) {
-        container.innerHTML = `
-            <a href="login.html" class="nav-btn">Log In</a>
-            <a href="login.html?mode=register" class="nav-btn nav-btn-primary">Sign Up</a>
-        `;
-        return;
-    }
-
     try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-            const initials = (session.user.email || 'U').charAt(0).toUpperCase();
+        const user = await checkAuthState();
+        if (user) {
+            const email = user.email || 'user';
+            const initials = email.charAt(0).toUpperCase();
+            const name = (user.user_metadata && user.user_metadata.full_name) || email;
             container.innerHTML = `
                 <span class="nav-user">
                     <span class="nav-avatar">${initials}</span>
-                    ${session.user.email}
+                    ${name}
                 </span>
                 <button class="nav-btn" id="nav-logout">Log Out</button>
             `;
             const logoutBtn = document.getElementById('nav-logout');
             if (logoutBtn) logoutBtn.addEventListener('click', async () => {
-                await supabase.auth.signOut();
+                await signOut();
                 window.location.href = 'index.html';
             });
         } else {
@@ -626,7 +681,9 @@ function setupHomePage() {
         });
     }
     if (signup) {
-        signup.addEventListener('click', () => openSignupModal());
+        signup.addEventListener('click', () => {
+            window.location.href = 'login.html?mode=register';
+        });
     }
 }
 
@@ -677,12 +734,12 @@ function setupHomeSignup() {
         const firstName = document.getElementById('su-firstname').value.trim();
         const lastName = document.getElementById('su-lastname').value.trim();
         const email = document.getElementById('su-email').value.trim().toLowerCase();
-        const age = parseInt(document.getElementById('su-age').value, 10);
-        const grade = document.getElementById('su-grade').value;
+        const confirmEmail = document.getElementById('su-confirm-email').value.trim().toLowerCase();
+        const dateOfBirth = document.getElementById('su-dob').value;
         const password = document.getElementById('su-password').value;
 
         // Basic validation
-        if (!firstName || !lastName || !email || !age || !grade || !password) {
+        if (!firstName || !lastName || !email || !confirmEmail || !dateOfBirth || !password) {
             if (errorEl) { errorEl.textContent = 'Please fill in every field.'; errorEl.hidden = false; }
             return;
         }
@@ -690,7 +747,20 @@ function setupHomeSignup() {
             if (errorEl) { errorEl.textContent = 'Please enter a valid email address.'; errorEl.hidden = false; }
             return;
         }
-        if (age < 12 || age > 18) {
+        if (email !== confirmEmail) {
+            if (errorEl) { errorEl.textContent = 'The two email addresses do not match.'; errorEl.hidden = false; }
+            return;
+        }
+        // Date of birth -> age 12–18
+        let age = null;
+        if (dateOfBirth) {
+            const dob = new Date(dateOfBirth);
+            const now = new Date();
+            age = now.getFullYear() - dob.getFullYear();
+            const m = now.getMonth() - dob.getMonth();
+            if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+        }
+        if (age === null || age < 12 || age > 18) {
             if (errorEl) { errorEl.textContent = 'You must be between 12 and 18 years old.'; errorEl.hidden = false; }
             return;
         }
@@ -704,39 +774,16 @@ function setupHomeSignup() {
         if (btn) { btn.disabled = true; if (btnText) btnText.textContent = 'Creating account…'; }
 
         try {
-            if (!supabase) {
-                // DEMO MODE: no Supabase keys yet, so simulate a successful sign-up
-                // locally so the button actually works for testing. The real
-                // Supabase branch below kicks in automatically once you add keys.
-                const DEMO_USERS = 'aihub_demo_users';
-                const users = JSON.parse(localStorage.getItem(DEMO_USERS) || '[]');
-                if (users.some(u => u.email === email)) {
-                    throw new Error('User already registered');
-                }
-                users.push({ email, first_name: firstName, last_name: lastName, age, grade });
-                localStorage.setItem(DEMO_USERS, JSON.stringify(users));
-                closeSignupModal();
-                window.location.href = 'index.html?demo=1';
-                return;
-            }
-            const { data, error } = await supabase.auth.signUp({
-                email,
-                password,
-                options: {
-                    data: {
-                        first_name: firstName,
-                        last_name: lastName,
-                        full_name: `${firstName} ${lastName}`,
-                        age,
-                        grade: parseInt(grade, 10)
-                    }
-                }
+            const { data } = await signUpWithEmail(email, password, {
+                first_name: firstName,
+                last_name: lastName,
+                full_name: `${firstName} ${lastName}`,
+                date_of_birth: dateOfBirth
             });
-            if (error) throw error;
 
             closeSignupModal();
-            // If email confirmation is required, Supabase returns no session.
-            if (data?.user && !data?.session) {
+            // Demo mode signs in immediately; Supabase may require email confirmation.
+            if (supabase && data.user && !data.session) {
                 window.location.href = 'login.html?registered=1';
             } else {
                 window.location.href = 'index.html';
@@ -752,7 +799,6 @@ function setupHomeSignup() {
         }
     });
 }
-
 // ========================================
 // INITIALIZATION
 // ========================================
